@@ -113,6 +113,7 @@ Flystarts-Minecraft-Launcher/
 │
 ├── launcher.ps1
 └── README.md
+└── launcher.json
 ```
 
 ---
