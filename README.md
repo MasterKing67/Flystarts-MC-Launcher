@@ -85,7 +85,7 @@ After the first launch, downloaded libraries and assets are stored locally.
 Clone the repository:
 
 ```bash
-git clone https://github.com/YourUsername/Flystarts-Minecraft-Launcher.git
+git clone https://github.com/MasterKing67/Flystarts-Minecraft-Launcher.git
 cd Flystarts-Minecraft-Launcher
 ```
 
