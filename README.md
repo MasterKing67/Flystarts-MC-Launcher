@@ -1,77 +1,170 @@
-Flystarts Minecraft Launcher
-https://img.shields.io/badge/Built%20with-PowerShell-blue?logo=powershell  
-https://img.shields.io/badge/Supports-Classic%20%E2%86%92%20Latest-green?logo=minecraft  
-https://img.shields.io/badge/Mode-Offline-lightgrey  
-https://img.shields.io/badge/License-MIT-yellow
+# 🎮 Flystarts Minecraft Launcher
 
-A PowerShell‑based offline Minecraft launcher that mimics TLauncher‑style behavior.
-It automatically downloads Mojang libraries, assets, and builds the correct classpath to launch any version of Minecraft — from Classic to the latest release.
+![PowerShell](https://img.shields.io/badge/Built%20with-PowerShell-blue?logo=powershell)
+![Minecraft Versions](https://img.shields.io/badge/Supports-Classic%20%E2%86%92%20Latest-green?logo=minecraft)
+![Offline](https://img.shields.io/badge/Mode-Offline-lightgrey)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-✨ Features
-Supports all versions → from Minecraft Classic (2009) to the newest release.
+A lightweight **PowerShell-based offline Minecraft launcher** that automatically downloads the required Minecraft files directly from Mojang and launches any supported version.
 
-JSON‑driven classpath → avoids LWJGL sealing violations.
+Inspired by the simplicity of launchers like TLauncher while remaining **offline-only**.
 
-Automatic asset downloads → fetches sounds, textures, and indexes from Mojang servers.
+---
 
-Native extraction → unpacks DLLs into the natives folder.
+## ✨ Features
 
-Offline mode → launches with dummy credentials (TestUser).
+- 🎮 Supports Minecraft versions from **Classic (2009)** to the **latest release**
+- 📦 Automatically downloads Mojang libraries
+- 🎵 Downloads assets (sounds, textures, language files)
+- 📂 Builds the correct Java classpath automatically
+- 🧩 Extracts native DLLs automatically
+- ⚡ One-click PowerShell launcher
+- 👤 Offline mode using dummy credentials (`TestUser`)
+- 🔄 JSON-driven version handling
 
-Plug‑and‑play PowerShell script → one‑click run for Windows users.
+---
 
-📂 Project Flow 
+## 📂 How It Works
+
+```mermaid
 graph TD
-    A[Minecraft Versions: Classic → Latest] --> B[Version JSON]
-    B --> C[Download Libraries]
-    C --> D[Build Classpath]
-    D --> E[Launch Minecraft]
 
-    B --> F[Asset Index (launchermeta)]
-    F --> G[Download Objects (resources.download.minecraft.net)]
-    G --> H[assets/objects]
+A[Minecraft Version] --> B[Download Version JSON]
+B --> C[Download Libraries]
+C --> D[Build Classpath]
+D --> E[Extract Natives]
+E --> F[Launch Minecraft]
 
-    C --> I[Natives DLL extraction]
-    I --> J[natives folder]
+B --> G[Download Asset Index]
+G --> H[Download Assets]
+H --> F
+```
 
-    E --> K[MainClass: net.minecraft.client.main.Main]
-Minecraft Version That The MC Launcher Supports
+---
 
+## 📅 Supported Minecraft Versions
+
+```mermaid
 timeline
-    title Minecraft Evolution (2009 → Latest)
-    2009 : Classic released
-    2011 : Beta → Official 1.0
-    2013 : 1.6 (Horses), 1.7 (Biome Update)
-    2014 : 1.8 (Bountiful Update)
-    2016 : 1.9 (Combat Update), 1.10
-    2017 : 1.12 (World of Color Update)
-    2019 : 1.14 (Village & Pillage)
-    2020 : 1.16 (Nether Update)
-    2021 : 1.17–1.18 (Caves & Cliffs)
-    2022 : 1.19 (Wild Update)
-    2023 : 1.20 (Trails & Tales)
-    2024 : 1.21 (Endless possibilities…)
-    2026 : Latest release supported
-⚙️ Requirements
-Java 8+ (tested with Java 17 and 21).
+    title Minecraft Version Support
 
-Windows PowerShell (preinstalled on Windows 10/11).
+    2009 : Classic
+    2010 : Alpha
+    2011 : Beta → Minecraft 1.0
+    2013 : 1.6 • 1.7
+    2014 : 1.8
+    2015 : 1.9
+    2016 : 1.10 • 1.11
+    2017 : 1.12
+    2018 : 1.13
+    2019 : 1.14 • 1.15
+    2020 : 1.16
+    2021 : 1.17 • 1.18
+    2022 : 1.19
+    2023 : 1.20
+    2024 : 1.21
+    Latest : Always Supported
+```
 
-Internet connection (for first‑time asset/library download).
+---
 
-🚀 Usage
-Clone the repo:
+## ⚙️ Requirements
+
+- Windows 10 or Windows 11
+- Windows PowerShell
+- Java 8 or newer
+  - Recommended: Java 17 or Java 21
+- Internet connection (first launch only)
+
+After the first launch, downloaded libraries and assets are stored locally.
+
+---
+
+## 🚀 Installation
+
+Clone the repository:
+
+```bash
 git clone https://github.com/YourUsername/Flystarts-Minecraft-Launcher.git
 cd Flystarts-Minecraft-Launcher
-Run the PowerShell script:
-./launcher.ps1
-Minecraft (any version) will launch with assets, libraries, and natives automatically set up.
-📜 License
-MIT License — free to use, modify, and distribute.
+```
 
-🧩 Notes
-This launcher is offline‑only (dummy credentials).
+Run the launcher:
 
-For online play, you must use Mojang’s official launcher.
+```powershell
+.\launcher.ps1
+```
 
-Assets and libraries are downloaded directly from Mojang’s CDN.
+The launcher will automatically:
+
+1. Detect the selected Minecraft version
+2. Download missing libraries
+3. Download required assets
+4. Extract native files
+5. Build the Java classpath
+6. Launch Minecraft
+
+---
+
+## 📁 Project Structure
+
+```
+Flystarts-Minecraft-Launcher/
+│
+├── launcher.ps1
+├── versions/
+├── libraries/
+├── assets/
+│   ├── indexes/
+│   └── objects/
+├── natives/
+└── README.md
+```
+
+---
+
+## 🌐 Downloads From
+
+The launcher downloads official files directly from Mojang:
+
+- Version manifests
+- Version JSON files
+- Libraries
+- Assets
+- Native files
+
+No third-party download servers are used.
+
+---
+
+## ⚠️ Limitations
+
+- Offline mode only
+- Uses dummy credentials (`TestUser`)
+- Multiplayer servers that require Microsoft authentication will not work.
+- Microsoft account login is **not included**.
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**.
+
+Feel free to use, modify, and distribute it.
+
+---
+
+## ❤️ Credits
+
+- Mojang Studios — Minecraft
+- Microsoft
+- PowerShell
+- Minecraft community
+
+---
+
+## ⭐ Support
+
+If you enjoy this project, consider giving it a ⭐ on GitHub!
+
+Contributions, issues, and pull requests are always welcome.
