@@ -112,12 +112,6 @@ The launcher will automatically:
 Flystarts-Minecraft-Launcher/
 │
 ├── launcher.ps1
-├── versions/
-├── libraries/
-├── assets/
-│   ├── indexes/
-│   └── objects/
-├── natives/
 └── README.md
 ```
 
