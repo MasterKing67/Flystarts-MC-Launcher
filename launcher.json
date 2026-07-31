@@ -1,0 +1,33 @@
+{
+  "profiles": [
+    {
+      "name": "OsmanProfile",
+      "username": "Osman",
+      "uuid": "12345678-aaaa-bbbb-cccc-1234567890ab",
+      "version": "1.20.1",
+      "jvmOptions": [
+        "-Xmx2G",
+        "-Xms1G",
+        "-XX:+UseG1GC"
+      ],
+      "gameArguments": [
+        "--username", "Osman",
+        "--version", "1.20.1",
+        "--gameDir", "./.minecraft",
+        "--assetsDir", "./assets"
+      ],
+      "mods": [
+        "OptiFine_1.20.1_HD_U_I5.jar",
+        "Fabric-API-0.92.0.jar",
+        "ReplayMod-1.20.1.jar"
+      ],
+      "resourcePack": "Faithful32.zip",
+      "skin": "OsmanSkin.png"
+    }
+  ],
+  "settings": {
+    "autoUpdate": true,
+    "showLogs": true,
+    "newsFeed": "https://launcher-news.example.com/feed.json"
+  }
+}
