@@ -24,13 +24,22 @@ Launch Minecraft from **Classic (2009)** to the **latest release** with automati
 
 <a href="#-quick-install">Quick Install</a> •
 <a href="#-features">Features</a> •
-<a href="#-screenshots">Screenshots</a> •
 <a href="#-documentation">Documentation</a>
 
 </p>
 
 </div>
 
+---
+
+## 📊 Project Status
+
+- 🎮 Supports **Classic → Latest**
+- 🪟 Windows 10 & 11
+- ☕ Java 8+
+- 📦 Automatic Downloads
+- 🔓 Open Source (MIT)
+- ⚡ Offline Launcher
 ---
 
 > [!NOTE]
@@ -243,18 +252,27 @@ All downloads are stored locally and reused on future launches.
 
 ## 📦 Project Structure
 
-The project is organized to keep launcher files, Minecraft data, and configuration separate.
+Flystarts is organized to keep launcher files, Minecraft data, and configuration clean and easy to navigate.
 
 ```text
 Flystarts-MC-Launcher/
 │
-├── 📄 install.bat              # Starts the launcher installer
-├── 📄 launcher.ps1             # Main PowerShell launcher
+├── 📄 install.bat
+├── 📄 launcher.ps1
 ├── 📄 README.md
+├── 📄 LICENSE
+
+```
+
+### 📁 Directory Overview
+
+| Folder/File | Description |
+|-------------|-------------|
+| `install.bat` | Starts the launcher installer. |
+| `launcher.ps1` | Main launcher script. |
 
 > [!TIP]
-> Flystarts automatically creates any missing folders the first time you run the launcher.
-
+> Flystarts automatically creates any missing folders during the first launch.
 ## ⚙️ Requirements
 
 Before using Flystarts Minecraft Launcher, make sure your system meets the following requirements.
@@ -486,8 +504,9 @@ Your support helps improve Flystarts for everyone.
 
 **Launch Minecraft from Classic to the Latest Release — Fast, Lightweight, and Open Source.**
 
-Made with ❤️ by **MasterKing67**
+Built with ❤️ by MasterKing67
 
+Powered by PowerShell • Java • Mojang
 ⭐ **If you like this project, don't forget to star the repository!**
 
 </div>
