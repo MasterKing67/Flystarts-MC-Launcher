@@ -1,5 +1,5 @@
 # Flystarts Minecraft Launcher
-# Interactive launcher with config.json persistence + mod downloads
+# Config persistence + mod downloads + retry logic + progress bar + logging
 
 # --- Setup base directories ---
 $MinecraftDir = "$PSScriptRoot\.minecraft"
@@ -19,6 +19,26 @@ foreach ($f in $folders) {
     if (-not (Test-Path $f)) {
         New-Item -ItemType Directory -Path $f | Out-Null
     }
+}
+
+# --- Safe download with retry ---
+function Safe-Download {
+    param($Url, $OutFile, $Retries = 3)
+    $attempt = 0
+    while ($attempt -lt $Retries) {
+        try {
+            if (-not (Test-Path $OutFile)) {
+                Invoke-WebRequest -Uri $Url -OutFile $OutFile -ErrorAction Stop
+            }
+            return $true
+        } catch {
+            $attempt++
+            Write-Host "⚠️ Attempt $attempt failed for $Url" -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+        }
+    }
+    Write-Host "❌ Failed to download $Url after $Retries attempts" -ForegroundColor Red
+    return $false
 }
 
 # --- Load or create config ---
@@ -67,47 +87,68 @@ for ($i=0; $i -lt 10; $i++) {
 $choice = Read-Host "Enter number of version"
 $Version = $Versions[$choice].id
 
-# --- Download version JSON, assets, libraries (same as before) ---
-# [Reuse your working code for JSON/assets/libs here]
+# --- Setup version paths ---
+$VersionDir = "$MinecraftDir\versions\$Version"
+$VersionJsonPath = "$VersionDir\$Version.json"
+$VersionJarPath = "$VersionDir\$Version.jar"
 
-# --- Mod downloader functions ---
-function Download-ModrinthMod {
-    param($Slug, $ModsDir)
-    $url = "https://api.modrinth.com/v2/project/$Slug/version"
-    $response = Invoke-RestMethod -Uri $url
-    $latest = $response[0].files[0].url
-    $fileName = Split-Path $latest -Leaf
-    Invoke-WebRequest -Uri $latest -OutFile "$ModsDir\$fileName"
-    Write-Host "Downloaded Modrinth mod: $fileName"
+if (-not (Test-Path $VersionDir)) { New-Item -ItemType Directory -Path $VersionDir | Out-Null }
+
+# --- Download version JSON ---
+$VersionInfo = $Versions | Where-Object { $_.id -eq $Version }
+Safe-Download $VersionInfo.url $VersionJsonPath | Out-Null
+$VersionJson = Get-Content $VersionJsonPath | ConvertFrom-Json
+
+# --- Download client JAR ---
+Safe-Download $VersionJson.downloads.client.url $VersionJarPath | Out-Null
+
+# --- Download asset index ---
+$AssetIndexUrl = $VersionJson.assetIndex.url
+$AssetIndexPath = "$MinecraftDir\assets\indexes\$Version.json"
+Safe-Download $AssetIndexUrl $AssetIndexPath | Out-Null
+$Index = Get-Content $AssetIndexPath | ConvertFrom-Json
+
+# --- Download assets with progress bar ---
+$objects = $Index.objects.GetEnumerator()
+$total = $objects.Count
+$count = 0
+foreach ($obj in $objects) {
+    $hash = $obj.Value.hash
+    $subdir = $hash.Substring(0,2)
+    $AssetPath = "$MinecraftDir\assets\objects\$subdir\$hash"
+    Safe-Download "https://resources.download.minecraft.net/$subdir/$hash" $AssetPath | Out-Null
+    $count++
+    $percent = [math]::Round(($count / $total) * 100, 2)
+    Write-Progress -Activity "Downloading assets" -Status "$percent% complete" -PercentComplete $percent
 }
 
-function Download-TLMod {
-    param($DirectUrl, $ModsDir)
-    $fileName = Split-Path $DirectUrl -Leaf
-    Invoke-WebRequest -Uri $DirectUrl -OutFile "$ModsDir\$fileName"
-    Write-Host "Downloaded TLMods mod: $fileName"
-}
-
-# --- Ask user about mods ---
-Write-Host "`nDo you want to download mods? (Y/N)"
-$modChoice = Read-Host
-if ($modChoice -eq "Y") {
-    Write-Host "Choose mod source:"
-    Write-Host "1) Modrinth"
-    Write-Host "2) TLMods (direct link)"
-    $sourceChoice = Read-Host
-
-    switch ($sourceChoice) {
-        "1" {
-            $Slug = Read-Host "Enter Modrinth slug (e.g. sodium)"
-            Download-ModrinthMod -Slug $Slug -ModsDir $ModsDir
-        }
-        "2" {
-            $DirectUrl = Read-Host "Enter TLMods direct download URL"
-            Download-TLMod -DirectUrl $DirectUrl -ModsDir $ModsDir
-        }
+# --- Download libraries with progress bar ---
+$Classpath = ""
+$totalLibs = $VersionJson.libraries.Count
+$countLibs = 0
+foreach ($lib in $VersionJson.libraries) {
+    if ($lib.downloads.artifact.url) {
+        $libPath = "$MinecraftDir\libraries\$($lib.downloads.artifact.path)"
+        $libDir = Split-Path $libPath
+        if (-not (Test-Path $libDir)) { New-Item -ItemType Directory -Path $libDir | Out-Null }
+        Safe-Download $lib.downloads.artifact.url $libPath | Out-Null
+        $Classpath += "$libPath;"
     }
+    $countLibs++
+    $percentLibs = [math]::Round(($countLibs / $totalLibs) * 100, 2)
+    Write-Progress -Activity "Downloading libraries" -Status "$percentLibs% complete" -PercentComplete $percentLibs
 }
+$Classpath += "$VersionJarPath"
+
+# --- Validate classpath ---
+if ([string]::IsNullOrWhiteSpace($Classpath)) {
+    Write-Host "❌ Error: Classpath is empty. Libraries or JAR missing." -ForegroundColor Red
+    exit
+}
+
+# --- Extra Feature: Log file ---
+$LogFile = "$MinecraftDir\launcher.log"
+"Launching $LauncherName at $(Get-Date)" | Out-File $LogFile -Append
 
 # --- Launch Minecraft ---
 $Args = @(
@@ -121,6 +162,12 @@ $Args = @(
     "--assetIndex", $Version
 )
 
-Write-Host "`nLaunching $LauncherName..."
+Write-Host "`n🚀 Launching $LauncherName..."
 Write-Host "$LauncherDesc"
-Start-Process "java" -ArgumentList $Args -NoNewWindow -Wait
+try {
+    Start-Process "java" -ArgumentList $Args -NoNewWindow -Wait
+    "Minecraft launched successfully." | Out-File $LogFile -Append
+} catch {
+    Write-Host "❌ Failed to launch Java. Ensure Java is installed and added to PATH." -ForegroundColor Red
+    "Launch failed: $_" | Out-File $LogFile -Append
+}
