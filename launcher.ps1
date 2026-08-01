@@ -7,7 +7,7 @@ Write-Host "1) Portable (next to script or current folder)"
 Write-Host "2) AppData (like official launcher)"
 $pathChoice = Read-Host "Enter choice (1-2)"
 
-# Handle case where $PSScriptRoot is empty (when running via irm | iex)
+# If $PSScriptRoot is empty (like when running via irm | iex), fallback to current directory
 if ([string]::IsNullOrWhiteSpace($PSScriptRoot)) {
     $ScriptDir = (Get-Location).Path
 } else {
@@ -16,23 +16,23 @@ if ([string]::IsNullOrWhiteSpace($PSScriptRoot)) {
 
 switch ($pathChoice) {
     "1" { $MinecraftDir = Join-Path $ScriptDir ".minecraft" }
-    "2" { $MinecraftDir = "$env:APPDATA\.minecraft" }
+    "2" { $MinecraftDir = Join-Path $env:APPDATA ".minecraft" }
     default {
         Write-Host "⚠️ Invalid choice, defaulting to portable mode."
         $MinecraftDir = Join-Path $ScriptDir ".minecraft"
     }
 }
 
-$ModsDir = "$MinecraftDir\mods"
-$ConfigFile = "$MinecraftDir\config.json"
+$ModsDir = Join-Path $MinecraftDir "mods"
+$ConfigFile = Join-Path $MinecraftDir "config.json"
 
 $folders = @(
     $MinecraftDir,
-    "$MinecraftDir\versions",
-    "$MinecraftDir\assets\indexes",
-    "$MinecraftDir\assets\objects",
-    "$MinecraftDir\libraries",
-    "$MinecraftDir\natives",
+    (Join-Path $MinecraftDir "versions"),
+    (Join-Path $MinecraftDir "assets\indexes"),
+    (Join-Path $MinecraftDir "assets\objects"),
+    (Join-Path $MinecraftDir "libraries"),
+    (Join-Path $MinecraftDir "natives"),
     $ModsDir
 )
 foreach ($f in $folders) {
