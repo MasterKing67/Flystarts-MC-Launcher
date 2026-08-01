@@ -1,5 +1,5 @@
 # Flystarts Minecraft Launcher
-# Uses launcher.json for config and versiontable.json for piston-data links
+# Uses launcher.json for config and piston-data gist for version links
 
 # --- Setup base directories ---
 Write-Host "`nChoose Minecraft folder location:"
@@ -24,7 +24,6 @@ switch ($pathChoice) {
 
 $ModsDir = Join-Path $MinecraftDir "mods"
 $ConfigFile = Join-Path $MinecraftDir "launcher.json"
-$VersionTablePath = Join-Path $MinecraftDir "versiontable.json"
 
 $folders = @(
     $MinecraftDir,
@@ -106,24 +105,38 @@ $LauncherDesc = $Config.LauncherDesc
 $Username = $Config.Username
 $Ram = $Config.Ram
 
-# --- Load VersionsTable from JSON ---
-if (Test-Path $VersionTablePath) {
-    $VersionsTable = Get-Content $VersionTablePath | ConvertFrom-Json
-    Write-Host "✅ Loaded version table from versiontable.json"
-} else {
-    Write-Host "❌ versiontable.json not found. Please place it in $MinecraftDir"
-    exit
+# --- Fetch VersionsTable online ---
+$gistUrl = "https://gist.githubusercontent.com/cliffano/77a982a7503669c3e1acb0a0cf6127e9/raw/53b33a0cb0caaaa9aa1bbef5c32b03f63183e413/minecraft-server-jar-downloads.md"
+Write-Host "🌐 Fetching latest version table..."
+$raw = Invoke-WebRequest $gistUrl | Select-Object -ExpandProperty Content
+
+$VersionsTable = @{}
+foreach ($line in $raw -split "`n") {
+    if ($line -match '^\|') {
+        $cols = $line -split '\|'
+        if ($cols.Count -ge 4 -and $cols[1] -notmatch 'Minecraft Version') {
+            $version = $cols[1].Trim()
+            $server  = $cols[2].Trim()
+            $client  = $cols[3].Trim()
+            $VersionsTable[$version] = @{
+                Server = $server
+                Client = $client
+            }
+        }
+    }
 }
+
+Write-Host "✅ Loaded $($VersionsTable.Count) versions from piston-data gist."
 
 # --- Show available versions ---
 Write-Host "`nAvailable versions:"
 $i = 0
-foreach ($v in $VersionsTable.PSObject.Properties.Name) {
+foreach ($v in $VersionsTable.Keys) {
     Write-Host "$i) $v"
     $i++
 }
 $choice = Read-Host "Enter number of version"
-$Version = ($VersionsTable.PSObject.Properties.Name)[$choice]
+$Version = ($VersionsTable.Keys)[$choice]
 
 $VersionDir = "$MinecraftDir\versions\$Version"
 if (-not (Test-Path $VersionDir)) { New-Item -ItemType Directory -Path $VersionDir | Out-Null }
@@ -131,8 +144,8 @@ if (-not (Test-Path $VersionDir)) { New-Item -ItemType Directory -Path $VersionD
 $ServerJarPath = "$VersionDir\server.jar"
 $ClientJarPath = "$VersionDir\client.jar"
 
-Safe-Download $VersionsTable.$Version.Server $ServerJarPath | Out-Null
-Safe-Download $VersionsTable.$Version.Client $ClientJarPath | Out-Null
+Safe-Download $VersionsTable[$Version].Server $ServerJarPath | Out-Null
+Safe-Download $VersionsTable[$Version].Client $ClientJarPath | Out-Null
 
 # --- Log file ---
 $LogFile = "$MinecraftDir\launcher.log"
@@ -157,4 +170,5 @@ try {
 } catch {
     Write-Host "❌ Failed to launch Java. Ensure Java is installed and added to PATH." -ForegroundColor Red
     "Launch failed: $_" | Out-File $LogFile -Append
+    Read-Host "Press Enter to exit after reviewing the error"
 }
