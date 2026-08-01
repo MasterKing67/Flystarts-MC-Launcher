@@ -122,7 +122,7 @@ Safe-Download $AssetIndexUrl $AssetIndexPath | Out-Null
 $Index = Get-Content $AssetIndexPath | ConvertFrom-Json
 
 # --- Download assets with progress bar ---
-$objects = $Index.objects.GetEnumerator()
+$objects = $Index.objects.PSObject.Properties
 $total = $objects.Count
 $count = 0
 foreach ($obj in $objects) {
