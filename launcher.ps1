@@ -1,17 +1,13 @@
 # Flystarts Minecraft Launcher
-# Creates .minecraft folder, downloads version JSON + assets, and launches Minecraft
+# Creates .minecraft folder, downloads chosen version JSON + assets, and launches Minecraft
 
 # --- Setup base directories ---
 $MinecraftDir = "$PSScriptRoot\.minecraft"
-$Version = "1.12.2"
-$VersionDir = "$MinecraftDir\versions\$Version"
-$VersionJsonPath = "$VersionDir\$Version.json"
 
 # Ensure folder structure exists
 $folders = @(
     $MinecraftDir,
     "$MinecraftDir\versions",
-    $VersionDir,
     "$MinecraftDir\assets\indexes",
     "$MinecraftDir\assets\objects",
     "$MinecraftDir\libraries",
@@ -21,6 +17,16 @@ foreach ($f in $folders) {
     if (-not (Test-Path $f)) {
         New-Item -ItemType Directory -Path $f | Out-Null
     }
+}
+
+# --- Ask user for version ---
+Write-Host "Enter Minecraft version (e.g., 1.12.2, 1.8.9, 1.20.1):"
+$Version = Read-Host
+$VersionDir = "$MinecraftDir\versions\$Version"
+$VersionJsonPath = "$VersionDir\$Version.json"
+
+if (-not (Test-Path $VersionDir)) {
+    New-Item -ItemType Directory -Path $VersionDir | Out-Null
 }
 
 # --- Download version manifest + JSON ---
@@ -63,7 +69,7 @@ foreach ($obj in $Index.objects.GetEnumerator()) {
     }
 }
 
-# --- Build classpath ---
+# --- Download libraries + build classpath ---
 $Classpath = ""
 foreach ($lib in $VersionJson.libraries) {
     if ($lib.downloads.artifact.url) {
