@@ -3,13 +3,13 @@
 
 # --- Setup base directories ---
 Write-Host "`nChoose Minecraft folder location:"
-Write-Host "1) Portable (next to script)"
+Write-Host "1) Portable (next to script or current folder)"
 Write-Host "2) AppData (like official launcher)"
 $pathChoice = Read-Host "Enter choice (1-2)"
 
-# If $PSScriptRoot is empty (when running via irm | iex), fallback to current directory
+# Handle case where $PSScriptRoot is empty (when running via irm | iex)
 if ([string]::IsNullOrWhiteSpace($PSScriptRoot)) {
-    $ScriptDir = Get-Location
+    $ScriptDir = (Get-Location).Path
 } else {
     $ScriptDir = $PSScriptRoot
 }
