@@ -2,7 +2,20 @@
 # Config persistence + mod downloads + retry logic + progress bar + logging + settings menu
 
 # --- Setup base directories ---
-$MinecraftDir = "$PSScriptRoot\.minecraft"
+Write-Host "`nChoose Minecraft folder location:"
+Write-Host "1) Portable (next to script)"
+Write-Host "2) AppData (like official launcher)"
+$pathChoice = Read-Host "Enter choice (1-2)"
+
+switch ($pathChoice) {
+    "1" { $MinecraftDir = Join-Path $PSScriptRoot ".minecraft" }
+    "2" { $MinecraftDir = "$env:APPDATA\.minecraft" }
+    default {
+        Write-Host "⚠️ Invalid choice, defaulting to portable mode."
+        $MinecraftDir = Join-Path $PSScriptRoot ".minecraft"
+    }
+}
+
 $ModsDir = "$MinecraftDir\mods"
 $ConfigFile = "$MinecraftDir\config.json"
 
