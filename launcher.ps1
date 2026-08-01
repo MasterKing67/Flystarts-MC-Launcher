@@ -1,5 +1,5 @@
 # Flystarts Minecraft Launcher
-# Config persistence + mod downloads + retry logic + progress bar + logging
+# Config persistence + mod downloads + retry logic + progress bar + logging + settings menu
 
 # --- Setup base directories ---
 $MinecraftDir = "$PSScriptRoot\.minecraft"
@@ -41,14 +41,8 @@ function Safe-Download {
     return $false
 }
 
-# --- Load or create config ---
-if (Test-Path $ConfigFile) {
-    $Config = Get-Content $ConfigFile | ConvertFrom-Json
-    $LauncherName = $Config.LauncherName
-    $LauncherDesc = $Config.LauncherDesc
-    $Username = $Config.Username
-    $Ram = $Config.Ram
-} else {
+# --- Config creation ---
+function Create-Config {
     $LauncherName = Read-Host "Enter launcher name"
     $LauncherDesc = Read-Host "Enter launcher description"
     $Username = Read-Host "Enter your Minecraft username"
@@ -72,8 +66,27 @@ if (Test-Path $ConfigFile) {
         Ram = $Ram
     }
     $Config | ConvertTo-Json | Set-Content $ConfigFile
-    Write-Host "Saved configuration to config.json"
+    Write-Host "💾 Saved configuration: $LauncherName ($LauncherDesc), User: $Username, RAM: $Ram"
+    return $Config
 }
+
+# --- Load config with settings menu ---
+if (Test-Path $ConfigFile) {
+    $Config = Get-Content $ConfigFile | ConvertFrom-Json
+    Write-Host "✅ Loaded config: $($Config.LauncherName) ($($Config.LauncherDesc)), User: $($Config.Username), RAM: $($Config.Ram)"
+    Write-Host "`nDo you want to change settings? (Y/N)"
+    $change = Read-Host
+    if ($change -eq "Y") {
+        $Config = Create-Config
+    }
+} else {
+    $Config = Create-Config
+}
+
+$LauncherName = $Config.LauncherName
+$LauncherDesc = $Config.LauncherDesc
+$Username = $Config.Username
+$Ram = $Config.Ram
 
 # --- Fetch Mojang manifest + version selection ---
 $ManifestUrl = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
@@ -207,8 +220,14 @@ $Args = @(
 
 Write-Host "`n🚀 Launching $LauncherName..."
 Write-Host "$LauncherDesc"
+
+# --- Log + Error Handling ---
+$LogFile = "$MinecraftDir\launcher.log"
+"Launching $LauncherName at $(Get-Date)" | Out-File $LogFile -Append
+
 try {
     Start-Process "java" -ArgumentList $Args -NoNewWindow -Wait
+    Write-Host "✅ Minecraft launched successfully!"
     "Minecraft launched successfully." | Out-File $LogFile -Append
 } catch {
     Write-Host "❌ Failed to launch Java. Ensure Java is installed and added to PATH." -ForegroundColor Red
