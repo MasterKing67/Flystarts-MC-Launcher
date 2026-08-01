@@ -150,6 +150,49 @@ if ([string]::IsNullOrWhiteSpace($Classpath)) {
 $LogFile = "$MinecraftDir\launcher.log"
 "Launching $LauncherName at $(Get-Date)" | Out-File $LogFile -Append
 
+# --- Mod downloader functions ---
+function Download-ModrinthMod {
+    param($Slug, $ModsDir)
+    try {
+        $url = "https://api.modrinth.com/v2/project/$Slug/version"
+        $response = Invoke-RestMethod -Uri $url
+        $latest = $response[0].files[0].url
+        $fileName = Split-Path $latest -Leaf
+        Safe-Download $latest "$ModsDir\$fileName" | Out-Null
+        Write-Host "Downloaded Modrinth mod: $fileName"
+    } catch {
+        Write-Host "❌ Failed to download Modrinth mod $Slug" -ForegroundColor Red
+    }
+}
+
+function Download-TLMod {
+    param($DirectUrl, $ModsDir)
+    $fileName = Split-Path $DirectUrl -Leaf
+    Safe-Download $DirectUrl "$ModsDir\$fileName" | Out-Null
+    Write-Host "Downloaded TLMods mod: $fileName"
+}
+
+# --- Ask user about mods ---
+Write-Host "`nDo you want to download mods? (Y/N)"
+$modChoice = Read-Host
+if ($modChoice -eq "Y") {
+    Write-Host "Choose mod source:"
+    Write-Host "1) Modrinth"
+    Write-Host "2) TLMods (direct link)"
+    $sourceChoice = Read-Host
+
+    switch ($sourceChoice) {
+        "1" {
+            $Slug = Read-Host "Enter Modrinth slug (e.g. sodium)"
+            Download-ModrinthMod -Slug $Slug -ModsDir $ModsDir
+        }
+        "2" {
+            $DirectUrl = Read-Host "Enter TLMods direct download URL"
+            Download-TLMod -DirectUrl $DirectUrl -ModsDir $ModsDir
+        }
+    }
+}
+
 # --- Launch Minecraft ---
 $Args = @(
     "-Xmx$Ram"
