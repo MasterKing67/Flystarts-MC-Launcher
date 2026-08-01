@@ -1,73 +1,93 @@
-# ================================
-# Flystarts Minecraft Launcher (TLauncher-style)
-# ================================
+# Flystarts Minecraft Launcher
+# Creates .minecraft folder, downloads version JSON + assets, and launches Minecraft
 
-$GameDir    = "D:\Flystarts Launcher\.minecraft"
-$Version    = "1.12.2"
-$VersionJsonPath = "$GameDir\versions\$Version\$Version.json"
-$AssetsDir  = "$GameDir\assets"
-$Libraries  = "$GameDir\libraries"
-$NativesDir = "$GameDir\natives"
+# --- Setup base directories ---
+$MinecraftDir = "$PSScriptRoot\.minecraft"
+$Version = "1.12.2"
+$VersionDir = "$MinecraftDir\versions\$Version"
+$VersionJsonPath = "$VersionDir\$Version.json"
 
-# Ensure directories exist
-New-Item -ItemType Directory -Force -Path $AssetsDir | Out-Null
-New-Item -ItemType Directory -Force -Path "$AssetsDir\indexes" | Out-Null
-New-Item -ItemType Directory -Force -Path "$AssetsDir\objects" | Out-Null
-New-Item -ItemType Directory -Force -Path $NativesDir | Out-Null
-
-# Load version JSON
-$VersionJson = Get-Content $VersionJsonPath | ConvertFrom-Json
-$MainClass   = $VersionJson.mainClass
-
-# Download libraries listed in JSON
-foreach ($lib in $VersionJson.libraries) {
-    if ($lib.downloads.artifact) {
-        $path = $lib.downloads.artifact.path
-        $url  = $lib.downloads.artifact.url
-        $target = Join-Path $Libraries $path
-        if (!(Test-Path $target)) {
-            New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
-            Invoke-WebRequest -Uri $url -OutFile $target
-        }
+# Ensure folder structure exists
+$folders = @(
+    $MinecraftDir,
+    "$MinecraftDir\versions",
+    $VersionDir,
+    "$MinecraftDir\assets\indexes",
+    "$MinecraftDir\assets\objects",
+    "$MinecraftDir\libraries",
+    "$MinecraftDir\natives"
+)
+foreach ($f in $folders) {
+    if (-not (Test-Path $f)) {
+        New-Item -ItemType Directory -Path $f | Out-Null
     }
 }
 
-# Download asset index from Mojang launchermeta
-$AssetIndexUrl = $VersionJson.assetIndex.url
-$AssetIndexPath = "$AssetsDir\indexes\$($VersionJson.assetIndex.id).json"
-if (!(Test-Path $AssetIndexPath)) {
-    Invoke-WebRequest -Uri $AssetIndexUrl -OutFile $AssetIndexPath
+# --- Download version manifest + JSON ---
+$ManifestUrl = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
+$Manifest = Invoke-RestMethod -Uri $ManifestUrl
+$VersionInfo = $Manifest.versions | Where-Object { $_.id -eq $Version }
+
+if (-not (Test-Path $VersionJsonPath)) {
+    if ($VersionInfo) {
+        Invoke-WebRequest -Uri $VersionInfo.url -OutFile $VersionJsonPath
+        Write-Host "Downloaded $Version version JSON."
+    } else {
+        Write-Error "Version $Version not found in Mojang manifest."
+        exit
+    }
 }
+
+# --- Parse version JSON ---
+$VersionJson = Get-Content $VersionJsonPath | ConvertFrom-Json
+
+# --- Download asset index ---
+$AssetIndexUrl = $VersionJson.assetIndex.url
+$AssetIndexPath = "$MinecraftDir\assets\indexes\$Version.json"
+
+if (-not (Test-Path $AssetIndexPath)) {
+    Invoke-WebRequest -Uri $AssetIndexUrl -OutFile $AssetIndexPath
+    Write-Host "Downloaded asset index for $Version."
+}
+
 $Index = Get-Content $AssetIndexPath | ConvertFrom-Json
 
-# Download missing asset objects
+# --- Download assets ---
 foreach ($obj in $Index.objects.GetEnumerator()) {
     $hash = $obj.Value.hash
-    $subDir = $hash.Substring(0,2)
-    $targetPath = "$AssetsDir\objects\$subDir\$hash"
-    if (!(Test-Path $targetPath)) {
-        New-Item -ItemType Directory -Force -Path "$AssetsDir\objects\$subDir" | Out-Null
-        $url = "https://resources.download.minecraft.net/$subDir/$hash"
-        Invoke-WebRequest -Uri $url -OutFile $targetPath
+    $subdir = $hash.Substring(0,2)
+    $AssetPath = "$MinecraftDir\assets\objects\$subdir\$hash"
+    if (-not (Test-Path $AssetPath)) {
+        $url = "https://resources.download.minecraft.net/$subdir/$hash"
+        Invoke-WebRequest -Uri $url -OutFile $AssetPath
     }
 }
 
-# Build classpath from JSON libraries + version jar
-$Libs = foreach ($lib in $VersionJson.libraries) {
-    if ($lib.downloads.artifact) {
-        Join-Path $Libraries $lib.downloads.artifact.path
+# --- Build classpath ---
+$Classpath = ""
+foreach ($lib in $VersionJson.libraries) {
+    if ($lib.downloads.artifact.url) {
+        $libPath = "$MinecraftDir\libraries\$($lib.downloads.artifact.path)"
+        $libDir = Split-Path $libPath
+        if (-not (Test-Path $libPath)) {
+            if (-not (Test-Path $libDir)) { New-Item -ItemType Directory -Path $libDir | Out-Null }
+            Invoke-WebRequest -Uri $lib.downloads.artifact.url -OutFile $libPath
+        }
+        $Classpath += "$libPath;"
     }
 }
-$Classpath = ($Libs -join ";") + ";$GameDir\versions\$Version\$Version.jar"
+$Classpath += "$VersionDir\$Version.jar"
 
-# Launch Minecraft
-java "-Djava.library.path=$NativesDir" -cp "$Classpath" $MainClass `
---username TestUser `
---version $Version `
---gameDir $GameDir `
---assetsDir $AssetsDir `
---assetIndex $($VersionJson.assetIndex.id) `
---uuid 00000000-0000-0000-0000-000000000000 `
---accessToken 0 `
---userType mojang `
---versionType release
+# --- Launch Minecraft ---
+$Args = @(
+    "-Xmx2G"
+    "-cp", $Classpath
+    "net.minecraft.client.main.Main"
+    "--username", "TestUser"
+    "--version", $Version
+    "--gameDir", $MinecraftDir
+    "--assetsDir", "$MinecraftDir\assets"
+    "--assetIndex", $Version
+)
+
+Start-Process "java" -ArgumentList $Args -NoNewWindow -Wait
