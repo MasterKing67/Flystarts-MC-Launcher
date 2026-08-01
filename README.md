@@ -128,24 +128,6 @@ The log includes:
 
 ---
 
-# 📸 Screenshots
-
-### 🖥️ Launcher Menu
-
-_Add a screenshot here_
-
----
-
-### 🎮 Minecraft Integration
-
-_Add a screenshot here_
-
----
-
-### 📦 GitHub Project
-
-_Add a repository screenshot here_
-
 ---
 
 # 🤝 Contributing
