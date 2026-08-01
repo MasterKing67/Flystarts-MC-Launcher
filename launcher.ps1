@@ -7,12 +7,19 @@ Write-Host "1) Portable (next to script)"
 Write-Host "2) AppData (like official launcher)"
 $pathChoice = Read-Host "Enter choice (1-2)"
 
+# If $PSScriptRoot is empty (when running via irm | iex), fallback to current directory
+if ([string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+    $ScriptDir = Get-Location
+} else {
+    $ScriptDir = $PSScriptRoot
+}
+
 switch ($pathChoice) {
-    "1" { $MinecraftDir = Join-Path $PSScriptRoot ".minecraft" }
+    "1" { $MinecraftDir = Join-Path $ScriptDir ".minecraft" }
     "2" { $MinecraftDir = "$env:APPDATA\.minecraft" }
     default {
         Write-Host "⚠️ Invalid choice, defaulting to portable mode."
-        $MinecraftDir = Join-Path $PSScriptRoot ".minecraft"
+        $MinecraftDir = Join-Path $ScriptDir ".minecraft"
     }
 }
 
