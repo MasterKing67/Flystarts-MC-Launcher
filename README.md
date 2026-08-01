@@ -106,6 +106,47 @@ The launcher will automatically:
 
 ---
 
+## ⚡ Quick Install
+
+Launch Flystarts Minecraft Launcher instantly with PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/MasterKing67/Flystarts-MC-Launcher/main/launcher.ps1 | iex
+```
+
+---
+
+## 🚀 First Launch
+
+When you run the launcher for the first time, it will automatically:
+
+- 📁 Create the `.minecraft` directory if it doesn't already exist
+- 👤 Ask for your Minecraft username
+- 💾 Let you choose your RAM allocation
+- 🎨 Configure your launcher branding (name and description)
+- 🎮 Allow you to select a Minecraft version using a searchable version menu
+- 🧩 Download supported mods from **Modrinth** and **TLMods**
+- ⚙️ Save all settings to `config.json`
+
+After setup is complete, the launcher is ready to use.
+
+---
+
+## 🔄 Future Launches
+
+On every launch after the initial setup, Flystarts will:
+
+- 📖 Load your saved settings from `config.json`
+- ⚡ Skip the setup wizard automatically
+- 🎮 Launch Minecraft using your saved:
+  - Username
+  - RAM allocation
+  - Selected Minecraft version
+  - Installed mods
+  - Launcher branding
+
+If you ever want to reconfigure the launcher, simply edit or delete `config.json`, and the setup wizard will appear again.
+
 ## 📁 Project Structure
 
 ```
