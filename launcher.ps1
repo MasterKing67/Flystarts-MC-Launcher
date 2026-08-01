@@ -1,5 +1,5 @@
 # Flystarts Minecraft Launcher
-# Creates .minecraft folder, downloads chosen version JSON + assets, and launches Minecraft
+# Creates .minecraft folder, shows paginated menu of all versions, downloads assets/libs, and launches Minecraft
 
 # --- Setup base directories ---
 $MinecraftDir = "$PSScriptRoot\.minecraft"
@@ -19,43 +19,64 @@ foreach ($f in $folders) {
     }
 }
 
-# --- Ask user for version ---
-Write-Host "Enter Minecraft version (e.g., 1.12.2, 1.8.9, 1.20.1):"
-$Version = Read-Host
-$VersionDir = "$MinecraftDir\versions\$Version"
-$VersionJsonPath = "$VersionDir\$Version.json"
-
-if (-not (Test-Path $VersionDir)) {
-    New-Item -ItemType Directory -Path $VersionDir | Out-Null
-}
-
-# --- Download version manifest + JSON ---
+# --- Fetch Mojang manifest ---
 $ManifestUrl = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
 $Manifest = Invoke-RestMethod -Uri $ManifestUrl
-$VersionInfo = $Manifest.versions | Where-Object { $_.id -eq $Version }
+$Versions = $Manifest.versions
 
-if (-not (Test-Path $VersionJsonPath)) {
-    if ($VersionInfo) {
-        Invoke-WebRequest -Uri $VersionInfo.url -OutFile $VersionJsonPath
-        Write-Host "Downloaded $Version version JSON."
-    } else {
-        Write-Error "Version $Version not found in Mojang manifest."
-        exit
+# --- Paginated menu ---
+$PageSize = 10
+$Page = 0
+$TotalPages = [math]::Ceiling($Versions.Count / $PageSize)
+
+function Show-Page {
+    param($Page)
+    Clear-Host
+    Write-Host "Minecraft Versions (Page $($Page+1)/$TotalPages)" -ForegroundColor Cyan
+    $start = $Page * $PageSize
+    $end = [math]::Min($start + $PageSize, $Versions.Count)
+    for ($i=$start; $i -lt $end; $i++) {
+        Write-Host "$i) $($Versions[$i].id)"
     }
+    Write-Host "`nN = Next page, P = Previous page, Q = Quit"
 }
 
-# --- Parse version JSON ---
+do {
+    Show-Page $Page
+    $choice = Read-Host "Enter number of version or command"
+    switch ($choice.ToUpper()) {
+        "N" { if ($Page -lt $TotalPages-1) { $Page++ } }
+        "P" { if ($Page -gt 0) { $Page-- } }
+        "Q" { exit }
+        default {
+            if ($choice -match '^\d+$' -and [int]$choice -lt $Versions.Count) {
+                $Version = $Versions[$choice].id
+                break
+            }
+        }
+    }
+} while (-not $Version)
+
+# --- Setup version paths ---
+$VersionDir = "$MinecraftDir\versions\$Version"
+$VersionJsonPath = "$VersionDir\$Version.json"
+if (-not (Test-Path $VersionDir)) { New-Item -ItemType Directory -Path $VersionDir | Out-Null }
+
+# --- Download version JSON ---
+$VersionInfo = $Versions | Where-Object { $_.id -eq $Version }
+if (-not (Test-Path $VersionJsonPath)) {
+    Invoke-WebRequest -Uri $VersionInfo.url -OutFile $VersionJsonPath
+    Write-Host "Downloaded $Version version JSON."
+}
 $VersionJson = Get-Content $VersionJsonPath | ConvertFrom-Json
 
 # --- Download asset index ---
 $AssetIndexUrl = $VersionJson.assetIndex.url
 $AssetIndexPath = "$MinecraftDir\assets\indexes\$Version.json"
-
 if (-not (Test-Path $AssetIndexPath)) {
     Invoke-WebRequest -Uri $AssetIndexUrl -OutFile $AssetIndexPath
     Write-Host "Downloaded asset index for $Version."
 }
-
 $Index = Get-Content $AssetIndexPath | ConvertFrom-Json
 
 # --- Download assets ---
